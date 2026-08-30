@@ -1,0 +1,176 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Ask Eya - الإدارة</title>
+
+  <style>
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      font-family: Arial, sans-serif;
+      background: #f7f2f5;
+      color: #333;
+    }
+
+    .container {
+      width: min(92%, 700px);
+      margin: 30px auto;
+    }
+
+    h1 {
+      text-align: center;
+      color: #b05a7a;
+    }
+
+    .card {
+      background: white;
+      padding: 20px;
+      margin: 15px 0;
+      border-radius: 18px;
+      box-shadow: 0 4px 15px rgba(0,0,0,.08);
+    }
+
+    .message {
+      padding: 15px;
+      border-radius: 12px;
+      background: #fafafa;
+      margin-top: 10px;
+    }
+
+    .flagged {
+      border: 2px solid #d9534f;
+      background: #fff5f5;
+    }
+
+    .empty {
+      text-align: center;
+      padding: 30px;
+      color: #888;
+    }
+
+    button {
+      border: 0;
+      border-radius: 10px;
+      padding: 10px 15px;
+      margin: 5px;
+      cursor: pointer;
+    }
+
+    .refresh {
+      background: #b05a7a;
+      color: white;
+    }
+
+    .delete {
+      background: #d9534f;
+      color: white;
+    }
+  </style>
+</head>
+
+<body>
+
+<div class="container">
+
+  <h1>💌 Ask Eya</h1>
+
+  <div class="card">
+    <h2>📥 الرسائل</h2>
+    <button class="refresh" onclick="loadMessages()">
+      تحديث الرسائل
+    </button>
+
+    <div id="messages">
+      <div class="empty">جاري التحميل...</div>
+    </div>
+  </div>
+
+</div>
+
+<script>
+async function loadMessages() {
+  const box = document.getElementById("messages");
+
+  try {
+    const response = await fetch("/api/messages");
+
+    if (!response.ok) {
+      throw new Error("Unauthorized");
+    }
+
+    const data = await response.json();
+
+    if (!Array.isArray(data) || data.length === 0) {
+      box.innerHTML = '<div class="empty">لا توجد رسائل حاليًا 💌</div>';
+      return;
+    }
+
+    box.innerHTML = "";
+
+    data.reverse().forEach(message => {
+
+      const item = document.createElement("div");
+
+      item.className =
+        "message " +
+        (message.status === "flagged" ? "flagged" : "");
+
+      item.innerHTML = `
+        <strong>
+          ${message.status === "flagged" ? "🚨 رسالة تحتاج مراجعة" : "💌 رسالة"}
+        </strong>
+
+        <p>${escapeHtml(message.text || "")}</p>
+
+        <small>
+          ${message.createdAt || ""}
+        </small>
+
+        <br>
+
+        <button class="delete"
+          onclick="deleteMessage('${message.id}')">
+          🗑️ حذف
+        </button>
+      `;
+
+      box.appendChild(item);
+    });
+
+  } catch (error) {
+    box.innerHTML = `
+      <div class="empty">
+        🔒 لا يمكنكِ الوصول إلى الرسائل.
+        <br>
+        يجب تسجيل الدخول أولًا.
+      </div>
+    `;
+  }
+}
+
+async function deleteMessage(id) {
+  if (!confirm("هل تريدين حذف هذه الرسالة؟")) return;
+
+  await fetch("/api/messages/" + id, {
+    method: "DELETE"
+  });
+
+  loadMessages();
+}
+
+function escapeHtml(text) {
+  const div = document.createElement("div");
+  div.textContent = text;
+  return div.innerHTML;
+}
+
+loadMessages();
+</script>
+
+</body>
+                                          </html>
